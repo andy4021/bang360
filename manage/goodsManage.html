@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>商品管理</title>
+<script src="baiduTemplate.js"></script>
+    <style>
+        table {
+            width:100%;
+            border-collapse: collapse;
+        }
+        table td{
+            text-align:center;
+            border:1px solid red;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <form name="goodsForm">
+            <input type="text" name="id">
+            <p>商品名称：<input type="text" name="goodsName"></p>
+            <p>商品类别：
+                <select name="goodsType">
+                    <option value="1">热门手机回收</option>
+                    <option value="2">优品精选</option>
+                </select>
+            </p>
+            <p>商品图片：<input type="file" name="goodsPic">
+
+                <img width="100" src="" alt=""/>
+
+            </p>
+
+            <p>商品单价：<input type="text" name="goodsPrice"></p>
+            <p>商品排序：<input type="text" name="orderByNum"></p>
+            <p><input type="button" name="btn" value="提交"></p>
+        </form>
+
+    </div>
+    <hr>
+    <div id="search">
+
+    </div>
+    <hr/>
+    <div id="wrap">
+
+    </div>
+    <script type="text/html" id="tp">
+       <table>
+           <tr>
+               <td>id</td>
+               <td>商品名称</td>
+               <td>商品图片</td>
+               <td>商品排序</td>
+               <td>商品价格</td>
+               <td>商品类型</td>
+               <td>上架时间时间</td>
+               <td>操作</td>
+           </tr>
+           <%for(var i=0;i<goodsList.length;i++){%>
+           <tr>
+               <td><%=goodsList[i]._id%></td>
+               <td><%=goodsList[i].goodsName%></td>
+               <td><img src="<%=goodsList[i].goodsPic%>" width="50" height="60" alt=""></td>
+               <td><%=goodsList[i].orderByNum%></td>
+               <td><%=goodsList[i].goodsPrice%></td>
+               <td><%=goodsTypeList.find(v=>v.goodsType === goodsList[i].goodsType).typeName%></td>
+               <td><%=goodsList[i].addTime%></td>
+               <td>
+                   <a  href="javascript:;" onclick="getGoodsById('<%=goodsList[i]._id%>')">修改</a>
+
+                   <a href="javascript:;" onclick="deleteGoodsInfo('<%=goodsList[i]._id%>')">删除</a>
+
+               </td>
+           </tr>
+           <%}%>
+       </table>
+        <div>
+            <a href="javascript:;" onclick="changePage(<%=pageIndex-1%>)">上一页</a>
+             <%=pageIndex%>/<%=pageSum%>
+            <a href="javascript:;" onclick="changePage(<%=pageIndex+1%>)">下一页</a>
+        </div>
+    </script>
+
+
+
+    <script type="text/html" id="goodsTypeTp">
+        <input type="text" id="keyword" onkeyup="getGoods()">
+        <input type="button" onclick="changeType(0,0)" value="全部">
+        <%for(var i=0;i<goodsTypeList.length;i++){%>
+        <input type="button" index="<%=i%>" onclick="changeType(<%=goodsTypeList[i].goodsType%>,<%=i+1%>)" value="<%=goodsTypeList[i].typeName%>">
+        <%}%>
+    </script>
+
+
+</body>
+<script>
+    var btn = document.querySelector("input[name=btn]");
+    var goodsTypeList ={};
+    var pageIndex =1;
+    var goodsType =0;
+    var index =0;
+    init();
+
+    // 初始化
+    function init() {
+        getGoodsType();
+
+    }
+    // // 根据ID获得广告信息
+    function getGoodsById(id) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("get","/goodsById?id="+id);
+        xhr.send();
+        xhr.onload= function (ev) {
+           console.log(xhr.responseText);
+           var obj = JSON.parse(xhr.responseText);
+           document.goodsForm.goodsPrice.value = obj.goodsInfo.goodsPrice;
+           document.goodsForm.goodsName.value = obj.goodsInfo.goodsName;
+           document.goodsForm.goodsType.value = obj.goodsInfo.goodsType;
+           document.goodsForm.orderByNum.value = obj.goodsInfo.orderByNum;
+           document.goodsForm.id.value = obj.goodsInfo._id;
+           document.querySelector("img").src = obj.goodsInfo.goodsPic;
+           btn.value = "修改";
+        }
+    }
+    function deleteGoodsInfo(id) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("delete","/goods?id="+id);
+        xhr.send();
+        xhr.onload= function (ev) {
+            getGoods();
+        }
+    }
+    function imgChange(img) {
+        // console.log(img);
+        // 生成一个文件读取的对象
+        var reader = new FileReader();
+        reader.readAsDataURL(img.files[0]);
+        reader.onload = function (ev) {
+            // base64格式的图片
+            // console.log(ev.target.result);
+            document.querySelector("img").src= ev.target.result;
+        }
+    }
+    btn.onclick=function () {
+
+        // 上传图片 formdata
+        var formdata = new FormData(document.querySelector("form[name=goodsForm]"));
+        console.log(formdata.get("goodsPrice"));
+
+        var xhr = new XMLHttpRequest();
+        var method ="post";
+        if(btn.value === "修改")
+            method = "put";
+        xhr.open(method,"http://127.0.0.1/goods");
+        xhr.send(formdata);
+        xhr.onload=function (ev) {
+            document.goodsForm.reset();
+            btn.value = "提交";
+            document.querySelector("img").src=null;
+            getGoods();
+            console.log(xhr.responseText);
+        }
+    }
+   
+    function changePage(pageI) {
+        pageIndex=pageI;
+        getGoods(goodsType,index);
+    }
+    function changeType(goodsTypeI,indexI) {
+        goodsType =goodsTypeI;
+        index =indexI;
+        pageIndex =1;
+        getGoods();
+    }
+    function getGoods() {
+        var keyword = document.querySelector("#keyword");
+        // console.log(document.querySelectorAll("#search input[type=button]"));
+        var allBtn =document.querySelectorAll("#search input[type=button]");
+        for(var i=0;i<allBtn.length;i++){
+            allBtn[i].style.background =null;
+        }
+        allBtn[index].style.background ="red";
+        var xhr = new XMLHttpRequest();
+        xhr.onload = function (ev) {
+            var obj = JSON.parse(xhr.responseText);
+            obj.goodsTypeList = goodsTypeList;
+            obj.goodsType = goodsType;
+            obj.index =index;
+            document.querySelector("#wrap").innerHTML = baidu.template("tp",obj);
+            // console.log(xhr.responseText);
+        }
+        xhr.open("get","/goods?goodsType="+goodsType+"&pageIndex="+pageIndex+"&keyword="+keyword.value);
+        xhr.send();
+
+    }
+
+    function getGoodsType() {
+        var xhr = new XMLHttpRequest();
+        xhr.onload = function (ev) {
+            var obj = JSON.parse(xhr.responseText);
+            goodsTypeList = obj.goodsTypeList
+            document.querySelector("#search").innerHTML = baidu.template("goodsTypeTp",obj);
+            getGoods();
+            // console.log(xhr.responseText);
+        }
+        xhr.open("get","/goodsTypeList");
+        xhr.send();
+
+    }
+</script>
+</html>

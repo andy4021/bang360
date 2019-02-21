@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>广告管理</title>
+    <script src="baiduTemplate.js"></script>
+    <style>
+        table {
+            width:100%;
+            border-collapse: collapse;
+        }
+        table td{
+            text-align:center;
+            border:1px solid red;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <form name="advForm">
+            <input type="text" name="id">
+            <p>广告标题：<input type="text" name="advTitle"></p>
+            <p>广告类别：
+                <select name="advType">
+                    <option value="1">轮播图广告</option>
+                    <option value="2">轮播图底部广告</option>
+                    <option value="3">优品精选</option>
+                    <option value="4">热门回收</option>
+                </select>
+            </p>
+            <p>广告图片：<input type="file"  onchange="imgChange(this)" name="advPic">
+
+                <img width="100" src="" alt="">
+            
+            </p>
+            <p>广告排序：<input type="text" name="orderByNum"></p>
+            <p>广告链接：<input type="text" name="advHref"></p>
+            <p><input type="button" name="btn" value="提交"></p>
+        </form>
+    </div>
+    <hr>
+    <div id="search">
+
+    </div>
+    <hr/>
+    <div id="wrap">
+
+    </div>
+    <script type="text/html" id="tp">
+       <table>
+           <tr>
+               <td>id</td>
+               <td>广告名称</td>
+               <td>广告图片</td>
+               <td>广告链接</td>
+               <td>广告排序</td>
+               <td>广告类型</td>
+               <td>广告时间</td>
+               <td>操作</td>
+           </tr>
+           <%for(var i=0;i<advList.length;i++){%>
+           <tr>
+               <td><%=advList[i]._id%></td>
+               <td><%=advList[i].advTitle%></td>
+               <td><img src="<%=advList[i].advPic%>" width="50" height="60" alt=""></td>
+               <td><%=advList[i].advHref%></td>
+               <td><%=advList[i].orderByNum%></td>
+               <td><%=advTypeList.find(v=>v.advType === advList[i].advType).typeName%></td>
+               <td><%=advList[i].addTime%></td>
+               <td>
+                   <a  href="javascript:;" onclick="getAdvById('<%=advList[i]._id%>')">修改</a>
+
+                   <a href="javascript:;" onclick="deleteAdvInfo('<%=advList[i]._id%>')">删除</a>
+
+               </td>
+           </tr>
+           <%}%>
+       </table>
+        <div>
+            <a href="javascript:;" onclick="changePage(<%=pageIndex-1%>)">上一页</a>
+             <%=pageIndex%>/<%=pageSum%>
+            <a href="javascript:;" onclick="changePage(<%=pageIndex+1%>)">下一页</a>
+        </div>
+    </script>
+
+
+
+    <script type="text/html" id="advTypeTp">
+        <input type="text" id="keyword" onkeyup="getAdv()">
+        <input type="button" onclick="changeType(0,0)" value="全部">
+        <%for(var i=0;i<advTypeList.length;i++){%>
+        <input type="button" index="<%=i%>" onclick="changeType(<%=advTypeList[i].advType%>,<%=i+1%>)" value="<%=advTypeList[i].typeName%>">
+        <%}%>
+    </script>
+</body>
+<script>
+    var btn = document.querySelector("input[name=btn]");
+    var advTypeList ={};
+    var pageIndex =1;
+    var advType =0;
+    var index =0;
+    init();
+
+    // 初始化
+    function init() {
+        getAdvType();
+
+    }
+    // 根据ID获得广告信息
+    function getAdvById(id) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("get","/advById?id="+id);
+        xhr.send();
+        xhr.onload= function (ev) {
+           console.log(xhr.responseText);
+           var obj = JSON.parse(xhr.responseText);
+           document.advForm.advHref.value = obj.advInfo.advHref;
+           document.advForm.advTitle.value = obj.advInfo.advTitle;
+           document.advForm.advType.value = obj.advInfo.advType;
+           document.advForm.orderByNum.value = obj.advInfo.orderByNum;
+           document.advForm.id.value = obj.advInfo._id;
+           document.querySelector("img").src = obj.advInfo.advPic;
+           btn.value = "修改";
+        }
+    }
+    function deleteAdvInfo(id) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("delete","/adv?id="+id);
+        xhr.send();
+        xhr.onload= function (ev) {
+            getAdv();
+        }
+    }
+    function imgChange(img) {
+        // console.log(img);
+        // 生成一个文件读取的对象
+        var reader = new FileReader();
+        reader.readAsDataURL(img.files[0]);
+        reader.onload = function (ev) {
+            // base64格式的图片
+            console.log(ev.target.result);
+            document.querySelector("img").src= ev.target.result;
+        }
+    }
+    btn.onclick=function () {
+
+        // 上传图片 formdata
+        var formdata = new FormData(document.querySelector("form[name=advForm]"));
+        console.log(formdata.get("advTitle"));
+        var xhr = new XMLHttpRequest();
+        var method ="post";
+        if(btn.value === "修改")
+            method = "put";
+        xhr.open(method,"http://127.0.0.1/adv");
+        xhr.send(formdata);
+        xhr.onload=function (ev) {
+            document.advForm.reset();
+            btn.value = "提交";
+            document.querySelector("img").src=null;
+            getAdv();
+            // console.log(xhr.responseText);
+        }
+        // 创建了一个空的formdata对象
+        // var formdata= new FormData();
+        // formdata.append("userName","xixi");
+        // formdata.append("userName","haha");
+        // formdata.set("userName","lala");
+        // formdata.set("userName","jiajia");
+        // // formdata.delete("userName");
+        // console.log(formdata.get("userName"));
+        // console.log(formdata.getAll("userName"));
+
+    }
+    function changePage(pageI) {
+        pageIndex=pageI;
+        getAdv(advType,index);
+    }
+    function changeType(advTypeI,indexI) {
+        advType =advTypeI;
+        index =indexI;
+        pageIndex =1;
+        getAdv();
+    }
+    function getAdv() {
+        var keyword = document.querySelector("#keyword");
+        console.log(document.querySelectorAll("#search input[type=button]"));
+        var allBtn =document.querySelectorAll("#search input[type=button]");
+        for(var i=0;i<allBtn.length;i++){
+            allBtn[i].style.background =null;
+        }
+        allBtn[index].style.background ="red";
+        var xhr = new XMLHttpRequest();
+        xhr.onload = function (ev) {
+            var obj = JSON.parse(xhr.responseText);
+            obj.advTypeList = advTypeList;
+            obj.advType = advType;
+            obj.index =index;
+            document.querySelector("#wrap").innerHTML = baidu.template("tp",obj);
+            console.log(xhr.responseText);
+        }
+        xhr.open("get","/adv?advType="+advType+"&pageIndex="+pageIndex+"&keyword="+keyword.value);
+        xhr.send();
+
+    }
+
+    function getAdvType() {
+        var xhr = new XMLHttpRequest();
+        xhr.onload = function (ev) {
+            var obj = JSON.parse(xhr.responseText);
+            advTypeList = obj.advTypeList
+            document.querySelector("#search").innerHTML = baidu.template("advTypeTp",obj);
+            getAdv();
+            console.log(xhr.responseText);
+        }
+        xhr.open("get","/advTypeList");
+        xhr.send();
+
+    }
+</script>
+</html>

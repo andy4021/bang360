@@ -1,0 +1,6 @@
+1、src: 生产环境
+    html:前端展示
+    manage:后台管理
+    api:后端接口
+
+ vue
